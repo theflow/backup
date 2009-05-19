@@ -69,17 +69,20 @@ module Backup
 
     # Expire old objects
     def cleanup(generation, keep)
-      puts "Cleaning up"
+      puts "Cleaning up #{generation} #{keep}"
       
-      keys = self.rotation[generation]
+      new_rotation = self.rotation
+      keys = new_rotation[generation]
+            
       diff = keys.size - keep
       
       1.upto( diff ) do
         extra_key = keys.shift
         delete extra_key
       end
+            
       # store updated index
-      self.rotation = keys
+      self.rotation = new_rotation
     end
 
     private
