@@ -97,8 +97,8 @@ module Backup
       c[:servers].each do |server| # todo, make this actually work
       @session = Net::SSH.start(
            server,
+           c[:ssh_user],
            :port         => c[:port],
-           :username     => c[:ssh_user],
            :host_key     => "ssh-rsa",
            :keys         => [ c[:identity_key] ],
            :auth_methods => %w{ publickey } )
