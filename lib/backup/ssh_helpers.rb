@@ -25,7 +25,7 @@ module Backup
         @channels.each do |ch|
           next if ch[:closed]
           active += 1
-          ch.connection.process(true)
+          ch.connection.process(0)
         end
 
         break if active == 0
@@ -47,28 +47,24 @@ module Backup
      
     def open_channels
       channel = actor.session.open_channel do |channel|
-           channel.request_pty( :want_reply => true )
-           channel[:actor] = @actor
-
-           channel.on_success do |ch|
-             #logger.trace "executing command", ch[:host]
-             ch.exec command
-             ch.send_data options[:data] if options[:data]
+           channel.request_pty do |ch, success|
+             if success
+               ch.exec command
+               ch.send_data options[:data] if options[:data]
+             else
+               ch.close
+             end
            end
+
+           channel[:actor] = @actor
 
            channel.on_data do |ch, data|
              puts data
              @callback[ch, :out, data] if @callback
            end
 
-           channel.on_failure do |ch|
-             #logger.important "could not open channel", ch[:host]
-             # puts "we got a faulure"
-             ch.close
-           end
-
-           channel.on_request do |ch, request, reply, data|
-             ch[:status] = data.read_long if request == "exit-status"
+           channel.on_request "exit-status" do |ch, data|
+             ch[:status] = data.read_long
            end
 
            channel.on_close do |ch|
