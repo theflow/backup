@@ -1,4 +1,3 @@
-#!/usr/bin/ruby
 require File.dirname(__FILE__) + "/tests_helper"
 require 'runt'
 require 'date'
