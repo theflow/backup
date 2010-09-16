@@ -84,7 +84,7 @@ module Backup
     end
 
     def rotate_via_s3(last_result)
-      s3 = Backup::S3Actor.new(c)
+      s3 = Backup::ChunkingS3Actor.new(c)
       s3.verify_rotation_hierarchy_exists(hierarchy)
       index = s3.rotation
       index[todays_generation] << last_result

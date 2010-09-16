@@ -97,4 +97,42 @@ module Backup
       end
     
   end
+
+  class ChunkingS3Actor < S3Actor
+    MAX_OBJECT_SIZE = 5368709120 # 5 * 2^30 = 5GB
+    CHUNK_SIZE = 4294967296 # 4 * 2^30 = 4GB
+
+    # Send a file to s3
+    def put(last_result)
+      object_key = Rotator.timestamped_prefix(last_result)
+      # determine if the file is too large
+      if File.stat(last_result).size > MAX_OBJECT_SIZE
+        # if so, split
+        split_command = "cd #{File.dirname(last_result)} && split -d -b #{CHUNK_SIZE} #{File.basename(last_result)} #{File.basename(last_result)}."
+        puts split_command
+        system split_command
+        chunks = Dir.glob("#{last_result}.*")
+        # put each file in the split
+        chunks.each do |chunk|
+          puts chunk
+          chunk_index = chunk.sub(last_result,"")
+          S3Object.store "#{object_key}#{chunk_index}", open(chunk), @bucket.name
+        end
+      else
+        puts last_result
+        S3Object.store object_key, open(last_result), @bucket.name
+      end
+      object_key
+    end
+
+    # Remove a file from s3
+    def delete(object_key)
+      # determine if there are multiple objects with this key prefix
+      chunks = @bucket.objects(:prefix => object_key)
+      # delete them all
+      chunks.each do |chunk|
+        chunk.delete
+      end
+    end
+  end
 end
