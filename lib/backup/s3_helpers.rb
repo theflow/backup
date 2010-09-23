@@ -2,7 +2,6 @@ require 'yaml'
 
 module Backup
   class S3Actor
-    include AWS::S3
     
     attr_accessor :rotation
     
@@ -15,54 +14,44 @@ module Backup
       @access_key   = c[:aws_access] ||= ENV['AMAZON_ACCESS_KEY_ID']
       @secret_key   = c[:aws_secret] ||= ENV['AMAZON_SECRET_ACCESS_KEY']
       @bucket_key   = "#{@access_key}.#{c[:backup_path]}"
-      Base.establish_connection!(
-        :access_key_id     => @access_key,
-        :secret_access_key => @secret_key
-      )
-      begin
-        # Look for our bucket, if it's not there, try to create it.
-        @bucket = Bucket.find @bucket_key
-      rescue NoSuchBucket
-        @bucket = Bucket.create @bucket_key
-        @bucket = Bucket.find @bucket_key
-      end   
+      @s3 = RightAws::S3.new(@access_key, @secret_key)
+      @bucket = @s3.bucket(@bucket_key, true)
     end
 
     def rotation
-      object = S3Object.find(@rotation_key, @bucket.name)
-      index  = YAML::load(object.value)
+      key = @bucket.key(@rotation_key)
+      YAML::load(key.data) if key
     end
 
     def rotation=(index)
-      object = S3Object.store(@rotation_key, index.to_yaml, @bucket.name)
+      @bucket.put(@rotation_key, index.to_yaml)
       index
     end
 
     # Send a file to s3
     def put(last_result)
-      puts last_result
       object_key = Rotator.timestamped_prefix(last_result)
-      S3Object.store object_key,
-                     open(last_result),
-                     @bucket.name
+      puts "put: #{object_key}"
+      @bucket.put(object_key, open(last_result))
       object_key
     end
 
     # Remove a file from s3
     def delete(object_key)
-      S3Object.delete object_key, @bucket.name
+      puts "delete: #{object_key}"
+      @bucket.key(object_key).delete
     end
 
     # Make sure our rotation index exists and contains the hierarchy we're using.
     # Create it if it does not exist
     def verify_rotation_hierarchy_exists(hierarchy)
-      begin
-        index = self.rotation
+      index = self.rotation
+      if index
         verified_index = index.merge(init_rotation_index(hierarchy)) { |m,x,y| x ||= y }
         unless (verified_index == index)
           self.rotation = verified_index
         end
-      rescue NoSuchKey
+      else
         self.rotation = init_rotation_index(hierarchy)
       end
     end
@@ -99,39 +88,52 @@ module Backup
   end
 
   class ChunkingS3Actor < S3Actor
-    MAX_OBJECT_SIZE = 5368709120 # 5 * 2^30 = 5GB
-    CHUNK_SIZE = 4294967296 # 4 * 2^30 = 4GB
+    DEFAULT_MAX_OBJECT_SIZE = 5368709120 # 5 * 2^30 = 5GB
+    DEFAULT_CHUNK_SIZE = 4294967296 # 4 * 2^30 = 4GB
+
+    def initialize(config)
+      super
+      @max_object_size = c[:max_object_size] ||= DEFAULT_MAX_OBJECT_SIZE
+      @chunk_size = c[:chunk_size] ||= DEFAULT_CHUNK_SIZE
+    end
 
     # Send a file to s3
     def put(last_result)
       object_key = Rotator.timestamped_prefix(last_result)
+      puts "put: #{object_key}"
       # determine if the file is too large
-      if File.stat(last_result).size > MAX_OBJECT_SIZE
+      if File.stat(last_result).size > @max_object_size
         # if so, split
-        split_command = "cd #{File.dirname(last_result)} && split -d -b #{CHUNK_SIZE} #{File.basename(last_result)} #{File.basename(last_result)}."
-        puts split_command
+        split_command = "cd #{File.dirname(last_result)} && split -d -b #{@chunk_size} #{File.basename(last_result)} #{File.basename(last_result)}."
+        puts "split: #{split_command}"
         system split_command
         chunks = Dir.glob("#{last_result}.*")
         # put each file in the split
         chunks.each do |chunk|
-          puts chunk
           chunk_index = chunk.sub(last_result,"")
-          S3Object.store "#{object_key}#{chunk_index}", open(chunk), @bucket.name
+          chunk_key = "#{object_key}#{chunk_index}"
+          puts "  #{chunk_key}"
+          @bucket.put(chunk_key, open(chunk))
         end
       else
-        puts last_result
-        S3Object.store object_key, open(last_result), @bucket.name
+        @bucket.put(object_key, open(last_result))
       end
       object_key
     end
 
     # Remove a file from s3
     def delete(object_key)
+      puts "delete: #{object_key}"
       # determine if there are multiple objects with this key prefix
-      chunks = @bucket.objects(:prefix => object_key)
-      # delete them all
-      chunks.each do |chunk|
-        chunk.delete
+      chunks = @bucket.keys(:prefix => object_key)
+      if chunks.size > 1
+        # delete them all
+        chunks.each do |chunk|
+          puts "  #{chunk.name}"
+          chunk.delete
+        end
+      else
+        chunks.first.delete
       end
     end
   end

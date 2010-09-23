@@ -8,12 +8,11 @@ require 'backup/date_parser'
 require 'backup/state_recorder'
 
 begin
-  require 'aws/s3'
+  require 'right_aws'
   require 'backup/s3_helpers'
 rescue LoadError
-  # If AWS::S3 is not installed, no worries, we just
-  # wont have access to s3 methods. It's worth noting
-  # at least version 1.8.4 of ruby is required for s3.
+  # If RightAWS is not installed, no worries, we just
+  # wont have access to s3 methods.
 end
 
 begin
