@@ -15,7 +15,7 @@ module Backup
       @secret_key   = c[:aws_secret] ||= ENV['AMAZON_SECRET_ACCESS_KEY']
       @bucket_key   = c[:aws_bucket]
       @s3 = RightAws::S3.new(@access_key, @secret_key)
-      @bucket = @s3.bucket(@bucket_key, true)
+      @bucket = @s3.bucket(@bucket_key) # bucket needs to exist
     end
 
     def rotation
