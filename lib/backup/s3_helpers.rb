@@ -20,7 +20,7 @@ module Backup
 
     def rotation
       key = @bucket.key(@rotation_key)
-      YAML::load(key.data) if key
+      YAML::load(key.data) if key.exists?
     end
 
     def rotation=(index)
