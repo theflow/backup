@@ -13,7 +13,7 @@ module Backup
       @rotation_key = c[:rotation_object_key] ||= 'backup_rotation_index.yml'
       @access_key   = c[:aws_access] ||= ENV['AMAZON_ACCESS_KEY_ID']
       @secret_key   = c[:aws_secret] ||= ENV['AMAZON_SECRET_ACCESS_KEY']
-      @bucket_key   = "#{@access_key}.#{c[:backup_path]}"
+      @bucket_key   = c[:aws_bucket]
       @s3 = RightAws::S3.new(@access_key, @secret_key)
       @bucket = @s3.bucket(@bucket_key, true)
     end
