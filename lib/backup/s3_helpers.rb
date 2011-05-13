@@ -114,6 +114,7 @@ module Backup
           chunk_key = "#{object_key}#{chunk_index}"
           puts "  #{chunk_key}"
           @bucket.put(chunk_key, open(chunk))
+          FileUtils.rm(chunk)
         end
       else
         @bucket.put(object_key, open(last_result))
