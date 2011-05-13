@@ -31,7 +31,7 @@ module Backup
         break if active == 0
         if Time.now - since >= 1
           since = Time.now
-          @channels.each { |ch| ch.connection.ping! }
+          # @channels.each { |ch| ch.connection.ping! }
         end
         sleep 0.01 # a brief respite, to keep the CPU from going crazy
       end
