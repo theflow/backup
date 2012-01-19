@@ -128,7 +128,7 @@ module Backup
 
         1.upto( diff ) do 
           extra = files.shift
-          rm extra
+          rm_r extra
         end
       end
 
