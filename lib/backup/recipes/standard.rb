@@ -99,7 +99,7 @@ action(:mv) do
 end
 
 action(:s3) do
-  s3 = ChunkingS3Actor.new(c)
+  s3 = S3Actor.new(c)
   s3.put last_result
 end
 

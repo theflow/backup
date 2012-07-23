@@ -10,6 +10,7 @@ require 'backup/state_recorder'
 begin
   require 'right_aws'
   require 'backup/s3_helpers'
+  require 'aws-sdk'
 rescue LoadError
   # If RightAWS is not installed, no worries, we just
   # wont have access to s3 methods.

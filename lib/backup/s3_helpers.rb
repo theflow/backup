@@ -2,29 +2,31 @@ require 'yaml'
 
 module Backup
   class S3Actor
-    
+
     attr_accessor :rotation
-    
+
     attr_reader :config
-    alias_method :c, :config
 
     def initialize(config)
       @config       = config
-      @rotation_key = c[:rotation_object_key] ||= 'backup_rotation_index.yml'
-      @access_key   = c[:aws_access] ||= ENV['AMAZON_ACCESS_KEY_ID']
-      @secret_key   = c[:aws_secret] ||= ENV['AMAZON_SECRET_ACCESS_KEY']
-      @bucket_key   = c[:aws_bucket]
-      @s3 = RightAws::S3.new(@access_key, @secret_key)
-      @bucket = @s3.bucket(@bucket_key) # bucket needs to exist
+      @rotation_key = config[:rotation_object_key] || 'backup_rotation_index.yml'
+
+      s3_config = {
+        :access_key_id => config[:aws_access] || ENV['AMAZON_ACCESS_KEY_ID'],
+        :secret_access_key => config[:aws_secret] || ENV['AMAZON_SECRET_ACCESS_KEY'],
+      }
+
+      @bucket = AWS::S3.new(s3_config).buckets[config[:aws_bucket]] # bucket needs to exist
     end
 
     def rotation
-      key = @bucket.key(@rotation_key)
-      YAML::load(key.data) if key.exists?
+      s3_key = @bucket.objects[@rotation_key]
+      YAML::load(s3_key.read) if s3_key.exists?
     end
 
     def rotation=(index)
-      @bucket.put(@rotation_key, index.to_yaml)
+      s3_key = @bucket.objects[@rotation_key]
+      s3_key.write(index.to_yaml)
       index
     end
 
@@ -32,14 +34,17 @@ module Backup
     def put(last_result)
       object_key = Rotator.timestamped_prefix(last_result)
       puts "put: #{object_key}"
-      @bucket.put(object_key, open(last_result))
+
+      s3_key = @bucket.objects[object_key]
+      s3_key.write(:file => last_result)
+
       object_key
     end
 
     # Remove a file from s3
     def delete(object_key)
       puts "delete: #{object_key}"
-      @bucket.key(object_key).delete
+      @bucket.objects[object_key].delete
     end
 
     # Make sure our rotation index exists and contains the hierarchy we're using.
@@ -85,57 +90,5 @@ module Backup
         hash
       end
     
-  end
-
-  class ChunkingS3Actor < S3Actor
-    DEFAULT_MAX_OBJECT_SIZE = 5368709120 # 5 * 2^30 = 5GB
-    DEFAULT_CHUNK_SIZE = 4294967296 # 4 * 2^30 = 4GB
-
-    def initialize(config)
-      super
-      @max_object_size = c[:max_object_size] ||= DEFAULT_MAX_OBJECT_SIZE
-      @chunk_size = c[:chunk_size] ||= DEFAULT_CHUNK_SIZE
-    end
-
-    # Send a file to s3
-    def put(last_result)
-      object_key = Rotator.timestamped_prefix(last_result)
-      puts "put: #{object_key}"
-      # determine if the file is too large
-      if File.stat(last_result).size > @max_object_size
-        # if so, split
-        split_command = "cd #{File.dirname(last_result)} && split -d -b #{@chunk_size} #{File.basename(last_result)} #{File.basename(last_result)}."
-        puts "split: #{split_command}"
-        system split_command
-        chunks = Dir.glob("#{last_result}.*")
-        # put each file in the split
-        chunks.each do |chunk|
-          chunk_index = chunk.sub(last_result,"")
-          chunk_key = "#{object_key}#{chunk_index}"
-          puts "  #{chunk_key}"
-          @bucket.put(chunk_key, open(chunk))
-          FileUtils.rm(chunk)
-        end
-      else
-        @bucket.put(object_key, open(last_result))
-      end
-      object_key
-    end
-
-    # Remove a file from s3
-    def delete(object_key)
-      puts "delete: #{object_key}"
-      # determine if there are multiple objects with this key prefix
-      chunks = @bucket.keys(:prefix => object_key)
-      if chunks.size > 1
-        # delete them all
-        chunks.each do |chunk|
-          puts "  #{chunk.name}"
-          chunk.delete
-        end
-      else
-        chunks.first.delete
-      end
-    end
   end
 end
