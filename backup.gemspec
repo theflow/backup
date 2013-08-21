@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name              = "backup"
-  s.version           = "0.1.3"
+  s.version           = "0.2.0"
   s.summary           = "Beginning-to-end solution for backups and rotation."
   s.homepage          = "http://tech.natemurray.com/backup"
   s.authors           = ["Nate Murray", "Florian Munz"]
