@@ -11,7 +11,7 @@ module Backup
     def date_from(what) 
       if what.kind_of?(Symbol)
         return Runt::DIWeek.new( Time.num_from_day(what) ) if day_of_week?(what) 
-        return Runt::REDay.new(0,0,24,01) if what == :daily
+        return Runt::REDay.new(0, 0, 23, 59) if what == :daily
         if what.to_s =~ /^last_/
           what.to_s =~ /^last_(\w+)_of_the_month$/
           day = $1
