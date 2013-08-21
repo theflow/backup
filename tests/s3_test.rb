@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + "/tests_helper"
+require "tests_helper"
 
 class S3Test < Test::Unit::TestCase
 

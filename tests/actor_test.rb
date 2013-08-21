@@ -1,4 +1,4 @@
-require File.dirname(__FILE__) + "/tests_helper"
+require 'tests_helper'
 
 class ActorTest < Test::Unit::TestCase
   def setup
