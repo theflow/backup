@@ -1,4 +1,4 @@
-require "tests_helper"
+require "test_helper"
 require 'runt'
 require 'date'
 

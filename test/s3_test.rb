@@ -1,4 +1,4 @@
-require "tests_helper"
+require "test_helper"
 
 class S3Test < Test::Unit::TestCase
 

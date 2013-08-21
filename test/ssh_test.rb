@@ -1,4 +1,4 @@
-require "tests_helper"
+require "test_helper"
 
 class SSHTest < Test::Unit::TestCase
   def setup
