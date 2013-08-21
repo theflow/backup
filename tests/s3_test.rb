@@ -17,7 +17,7 @@ class S3Test < Test::Unit::TestCase
     assert @actor
   end
 
-  def test_on_s3
+  def todo_test_on_s3
     dir = create_tmp_files
     config = <<-END
       action :content, :is_folder => "#{dir}"
