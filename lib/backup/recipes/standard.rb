@@ -77,8 +77,7 @@ set :fathers_promoted_after,       6
 # -------------------------
 action(:tar_bz2) do
   name = c[:tmp_dir] + "/" + File.basename(last_result) + ".tar.bz2"
-  v = "v" if verbose
-  sh "tar -c#{v}jf #{name} #{last_result}"
+  sh "tar -cvjf #{name} #{last_result}"
   name
 end
 
