@@ -33,8 +33,8 @@ class S3Test < Test::Unit::TestCase
   
     def create_tmp_files
       newtmp = @config[:tmp_dir] + "/test_#{rand}_" + Time.now.strftime("%Y%m%d%H%M%S")
-      sh "mkdir #{newtmp}"
-      0.upto(5) { |i| sh "touch #{newtmp}/#{i}" }
+      Rake::FileUtilsExt.sh "mkdir #{newtmp}"
+      0.upto(5) { |i| Rake::FileUtilsExt.sh "touch #{newtmp}/#{i}" }
       newtmp
     end
 end
