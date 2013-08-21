@@ -1,13 +1,14 @@
 require 'rake'
 
 module Backup
-  include FileUtils
   # An Actor is the entity that actually does the work of determining which
   # servers should be the target of a particular task, and of executing the
   # task on each of them in parallel. An Actor is never instantiated
   # directly--rather, you create a new Configuration instance, and access the
   # new actor via Configuration#actor.
   class Actor
+    include FileUtils
+
     # The configuration instance associated with this actor.
     attr_reader :configuration
 
