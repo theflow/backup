@@ -14,7 +14,7 @@ module Backup
       s3_config = {
         :access_key_id => config[:aws_access] || ENV['AMAZON_ACCESS_KEY_ID'],
         :secret_access_key => config[:aws_secret] || ENV['AMAZON_SECRET_ACCESS_KEY'],
-        :s3_server_side_encryption => config[:server_side_encryption] ? :aes256 : nil,
+        :s3_server_side_encryption => config[:s3_server_side_encryption] ? :aes256 : nil,
       }
 
       @bucket = AWS::S3.new(s3_config).buckets[config[:aws_bucket]] # bucket needs to exist
