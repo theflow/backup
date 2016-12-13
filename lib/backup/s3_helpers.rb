@@ -36,8 +36,7 @@ module Backup
       object_key = Rotator.timestamped_prefix(last_result)
       puts "put: #{object_key}"
 
-      s3_key = @bucket.objects[object_key]
-      s3_key.write(:file => last_result)
+      `AWS_ACCESS_KEY_ID="#{config[:aws_access]}" AWS_SECRET_ACCESS_KEY="#{config[:aws_secret]}" /usr/local/bin/aws s3 cp #{last_result} s3://#{config[:aws_bucket]}/#{object_key} --sse`
 
       object_key
     end
